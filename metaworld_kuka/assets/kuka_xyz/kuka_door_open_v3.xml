@@ -1,0 +1,20 @@
+<mujoco model="kuka_door_open_v3">
+  <include file="../objects/assets/kuka_xyz_base_dependencies.xml"/>
+  <option timestep="0.0025" iterations="50" solver="Newton" jacobian="dense" cone="elliptic"/>
+  <visual><global offwidth="480" offheight="480"/></visual>
+  <worldbody>
+    <light directional="true" pos="-1 -1 1" dir="1 1 -1"/><camera name="corner" pos="1.1 -.7 1.1" xyaxes=".55 .83 0 -.45 .30 .84"/>
+    <geom name="floor" type="plane" size="2 2 .1" rgba=".8 .8 .8 1"/><include file="../objects/assets/kuka_xyz_base.xml"/>
+    <!-- HISTORICAL_KUKA: hinge origin/axis/range, panel and handle geometry. -->
+    <body name="door" pos=".1 .74 .1">
+      <!-- CURRENT_SAWYER: -2 rad opening range preserves V3 opening-angle semantics. -->
+      <joint name="doorjoint" pos="-.16 0 0" axis="0 0 1" type="hinge" range="-2 0" damping=".1"/>
+      <inertial pos="0 0 0" mass="1" diaginertia=".01 .01 .01"/>
+      <geom type="box" size=".15 .01 .1" rgba=".1 .1 .9 1"/>
+      <geom name="handle" type="box" pos=".1 -.15 .05" size=".05 .01 .02" friction="2 .1 .002"/>
+      <geom type="box" pos=".14 -.075 .05" size=".01 .075 .02"/>
+    </body>
+    <site name="goal" pos="-.2 .29 .1" size=".02" rgba="0 .8 0 1"/>
+  </worldbody>
+  <equality><weld body1="mocap" body2="hand" solref=".02 1"/></equality>
+</mujoco>

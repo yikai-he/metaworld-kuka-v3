@@ -1,0 +1,104 @@
+<mujocoinclude>
+    <compiler angle="radian" inertiafromgeom="auto" inertiagrouprange="4 5"/>
+    <asset>
+        <mesh name="kuka_link_0_mesh" file="../objects/meshes/kuka/kuka_link_0.stl"/>
+        <mesh name="kuka_link_1_mesh" file="../objects/meshes/kuka/kuka_link_1.stl"/>
+        <mesh name="kuka_link_2_mesh" file="../objects/meshes/kuka/kuka_link_2.stl"/>
+        <mesh name="kuka_link_3_mesh" file="../objects/meshes/kuka/kuka_link_3.stl"/>
+        <mesh name="kuka_link_4_mesh" file="../objects/meshes/kuka/kuka_link_4.stl"/>
+        <mesh name="kuka_link_5_mesh" file="../objects/meshes/kuka/kuka_link_5.stl"/>
+        <mesh name="kuka_link_6_mesh" file="../objects/meshes/kuka/kuka_link_6.stl"/>
+        <mesh name="kuka_link_7_mesh" file="../objects/meshes/kuka/kuka_link_7.stl"/>
+        <!-- Robotiq 2F-85 meshes imported from ROS-Industrial via
+             Metaworld-KUKA-IIWA-R800 commit 256a721. See the adjacent
+             robotiq_2f85/README.md and BSD-2-Clause LICENSE. -->
+        <mesh name="base_mount" class="2f85" file="../meshes/kuka/robotiq_2f85/assets/base_mount.stl"/>
+        <mesh name="base" class="2f85" file="../meshes/kuka/robotiq_2f85/assets/base.stl"/>
+        <mesh name="driver" class="2f85" file="../meshes/kuka/robotiq_2f85/assets/driver.stl"/>
+        <mesh name="coupler" class="2f85" file="../meshes/kuka/robotiq_2f85/assets/coupler.stl"/>
+        <mesh name="follower" class="2f85" file="../meshes/kuka/robotiq_2f85/assets/follower.stl"/>
+        <mesh name="pad" class="2f85" file="../meshes/kuka/robotiq_2f85/assets/pad.stl"/>
+        <mesh name="silicone_pad" class="2f85" file="../meshes/kuka/robotiq_2f85/assets/silicone_pad.stl"/>
+        <mesh name="spring_link" class="2f85" file="../meshes/kuka/robotiq_2f85/assets/spring_link.stl"/>
+        <material name="kuka_orange" rgba="1.0 0.4235 0.0392 1"/>
+        <material name="kuka_grey" rgba="0.4 0.4 0.4 1"/>
+        <material name="robotiq_gray" rgba="0.4627 0.4627 0.4627 1"/>
+        <material name="robotiq_black" rgba="0.149 0.149 0.149 1"/>
+    </asset>
+    <default>
+        <default class="kuka_visual">
+            <geom contype="0" conaffinity="0" group="1" type="mesh"/>
+        </default>
+        <default class="kuka_collision">
+            <geom contype="1" conaffinity="1" group="4"
+                  friction="0.6 0.005 0.0001"/>
+        </default>
+        <default class="2f85">
+            <mesh scale="0.001 0.001 0.001"/>
+            <general biastype="affine"/>
+            <joint axis="1 0 0"/>
+            <default class="driver">
+                <joint range="0 0.8" armature="0.005" damping="0.1"
+                       solimplimit="0.95 0.99 0.001" solreflimit="0.005 1"/>
+            </default>
+            <default class="follower">
+                <joint range="-0.872664 0.872664" pos="0 -0.018 0.0065"
+                       solimplimit="0.95 0.99 0.001" solreflimit="0.005 1"/>
+            </default>
+            <default class="spring_link">
+                <joint range="-0.29670597283 0.8" stiffness="0.05"
+                       springref="2.62" damping="0.00125"/>
+            </default>
+            <default class="coupler">
+                <joint range="-1.57 0" solimplimit="0.95 0.99 0.001"
+                       solreflimit="0.005 1"/>
+            </default>
+            <default class="gripper_visual">
+                <geom type="mesh" contype="0" conaffinity="0" group="2"/>
+            </default>
+            <default class="gripper_collision">
+                <geom type="mesh" group="3"/>
+                <default class="pad_box1">
+                    <geom mass="0" type="box" pos="0 -0.0026 0.028125"
+                          size="0.011 0.004 0.009375" friction="0.7"
+                          solimp="0.95 0.99 0.001" solref="0.004 1"
+                          priority="1" rgba="0.55 0.55 0.55 1"/>
+                </default>
+                <default class="pad_box2">
+                    <geom mass="0" type="box" pos="0 -0.0026 0.009375"
+                          size="0.011 0.004 0.009375" friction="0.6"
+                          solimp="0.95 0.99 0.001" solref="0.004 1"
+                          priority="1" rgba="0.45 0.45 0.45 1"/>
+                </default>
+            </default>
+        </default>
+    </default>
+    <contact>
+        <exclude body1="base" body2="left_driver"/>
+        <exclude body1="base" body2="right_driver"/>
+        <exclude body1="base" body2="left_spring_link"/>
+        <exclude body1="base" body2="right_spring_link"/>
+        <exclude body1="right_coupler" body2="right_follower"/>
+        <exclude body1="left_coupler" body2="left_follower"/>
+    </contact>
+    <tendon>
+        <fixed name="split">
+            <joint joint="right_driver_joint" coef="0.5"/>
+            <joint joint="left_driver_joint" coef="0.5"/>
+        </fixed>
+    </tendon>
+    <equality>
+        <connect anchor="0 0 0" body1="right_follower" body2="right_coupler"
+                 solimp="0.95 0.99 0.001" solref="0.005 1"/>
+        <connect anchor="0 0 0" body1="left_follower" body2="left_coupler"
+                 solimp="0.95 0.99 0.001" solref="0.005 1"/>
+        <joint joint1="right_driver_joint" joint2="left_driver_joint"
+               polycoef="0 1 0 0 0" solimp="0.95 0.99 0.001" solref="0.005 1"/>
+    </equality>
+    <actuator>
+        <!-- 0=open, 255=closed. KukaXYZEnv maps policy action continuously. -->
+        <general class="2f85" name="fingers_actuator" tendon="split"
+                 forcerange="-5 5" ctrlrange="0 255"
+                 gainprm="0.3137255 0 0" biasprm="0 -100 -10"/>
+    </actuator>
+</mujocoinclude>

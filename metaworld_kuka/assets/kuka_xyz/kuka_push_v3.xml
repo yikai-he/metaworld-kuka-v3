@@ -1,0 +1,31 @@
+<mujoco model="kuka_push_v3">
+    <include file="../objects/assets/kuka_xyz_base_dependencies.xml"/>
+
+    <option timestep="0.0025" iterations="50" tolerance="1e-10"
+            solver="Newton" jacobian="dense" cone="elliptic"/>
+    <visual>
+        <global offwidth="480" offheight="480"/>
+        <headlight ambient="0.4 0.4 0.4"/>
+    </visual>
+
+    <worldbody>
+        <light directional="true" diffuse="0.6 0.6 0.6" pos="-1 -1 1" dir="1 1 -1"/>
+        <camera name="corner" pos="1.1 -0.7 1.1" xyaxes="0.55 0.83 0 -0.45 0.30 0.84"/>
+        <geom name="floor" type="plane" size="2 2 0.1" rgba="0.8 0.8 0.8 1"/>
+        <include file="../objects/assets/kuka_xyz_base.xml"/>
+        <body name="obj" pos="0 0.45 0.02">
+            <joint name="objjoint" type="free" limited="false" damping="0" armature="0"/>
+            <inertial pos="0 0 0" mass="0.75"
+                      diaginertia="8.80012e-04 8.80012e-04 8.80012e-04"/>
+            <geom name="objGeom" type="cylinder" size="0.03 0.015" group="4"
+                  solimp="0.99 0.99 0.01" solref="0.01 1"
+                  contype="1" conaffinity="1" friction="1 0.1 0.002"
+                  condim="4" rgba="0.8 0.1 0.1 1"/>
+        </body>
+        <site name="goal" pos="0.1 0.65 0.02" size="0.02" rgba="0 0.8 0 1"/>
+    </worldbody>
+
+    <equality>
+        <weld name="mocap_to_hand" body1="mocap" body2="hand" solref="0.02 1"/>
+    </equality>
+</mujoco>

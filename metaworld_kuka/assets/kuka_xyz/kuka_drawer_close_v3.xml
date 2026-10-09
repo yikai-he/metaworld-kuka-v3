@@ -1,0 +1,21 @@
+<mujoco model="kuka_drawer_close_v3">
+  <include file="../objects/assets/kuka_xyz_base_dependencies.xml"/>
+  <option timestep="0.0025" iterations="50" solver="Newton" jacobian="dense" cone="elliptic"/>
+  <visual><global offwidth="480" offheight="480"/></visual>
+  <worldbody>
+    <light directional="true" pos="-1 -1 1" dir="1 1 -1"/><camera name="corner" pos="1.1 -0.7 1.1" xyaxes="0.55 0.83 0 -0.45 0.30 0.84"/>
+    <geom name="floor" type="plane" size="2 2 .1" rgba=".8 .8 .8 1"/><include file="../objects/assets/kuka_xyz_base.xml"/>
+    <!-- HISTORICAL_KUKA: fixture, handle, slide axis and [-0.2, 0] range. -->
+    <body name="drawer" pos="0 .9 .04">
+      <joint name="goal_slidey" type="slide" axis="0 1 0" limited="true" range="-.2 0" damping="1"/>
+      <inertial pos="0 0 .05" mass="1" diaginertia=".01 .01 .01"/>
+      <geom name="drawer_bottom" type="box" pos="0 0 .005" size=".1 .1 .001" mass="10" rgba=".65 .35 .15 1"/>
+      <geom type="box" pos="0 .1 .054" size=".1 .001 .05" mass="10"/><geom type="box" pos=".1 0 .054" size=".001 .1 .05" mass="10"/><geom type="box" pos="-.1 0 .054" size=".001 .1 .05" mass="10"/>
+      <geom name="handle" type="box" pos="0 -.2 .05" size=".05 .005 .02" friction="2 .1 .002"/><geom type="box" pos=".045 -.15 .05" size=".005 .05 .02"/><geom type="box" pos="-.045 -.15 .05" size=".005 .05 .02"/>
+      <site name="handleStart" pos="0 -.2 .08" size=".008" rgba="1 0 0 1"/>
+    </body>
+    <body name="drawer_cover" pos="0 .9 .02"><geom type="box" pos="0 0 .2" size=".105 .105 .001"/><geom type="box" pos="0 .105 .102" size=".105 .001 .1"/><geom type="box" pos=".105 0 .102" size=".001 .105 .1"/><geom type="box" pos="-.105 0 .102" size=".001 .105 .1"/></body>
+    <site name="goal" pos="0 .7 .12" size=".02" rgba="0 .8 0 1"/>
+  </worldbody>
+  <equality><weld body1="mocap" body2="hand" solref=".02 1"/></equality>
+</mujoco>

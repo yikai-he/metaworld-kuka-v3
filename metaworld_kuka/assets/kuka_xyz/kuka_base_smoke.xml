@@ -1,0 +1,24 @@
+<mujoco model="kuka_base_smoke">
+    <include file="../objects/assets/kuka_xyz_base_dependencies.xml"/>
+
+    <option timestep="0.0025" gravity="0 0 -9.81"/>
+    <visual>
+        <global offwidth="480" offheight="480"/>
+    </visual>
+
+    <worldbody>
+        <light pos="0 0 2" dir="0 0 -1" diffuse="1 1 1"/>
+        <camera name="corner" pos="1.1 -0.7 1.1" xyaxes="0.55 0.83 0 -0.45 0.30 0.84"/>
+        <geom name="floor" type="plane" size="2 2 0.1" rgba="0.8 0.8 0.8 1"/>
+        <include file="../objects/assets/kuka_xyz_base.xml"/>
+        <body name="obj" pos="0 0.54 0.02">
+            <joint name="objjoint" type="free"/>
+            <geom name="objGeom" type="box" size="0.02 0.02 0.02" mass="0.1" group="4"/>
+        </body>
+        <site name="goal" pos="0 0.70 0.20" size="0.02" rgba="0.8 0 0 1"/>
+    </worldbody>
+
+    <equality>
+        <weld name="mocap_to_hand" body1="mocap" body2="hand" solref="0.02 1"/>
+    </equality>
+</mujoco>
