@@ -1,16 +1,16 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 import numpy as np
 import numpy.typing as npt
 from gymnasium.spaces import Box
-
-from pathlib import Path
 from metaworld.sawyer_xyz_env import RenderMode, SawyerXYZEnv
-from metaworld_kuka.kuka_xyz_env import KukaXYZEnv
 from metaworld.types import InitConfigDict
 from metaworld.utils import reward_utils
+
+from metaworld_kuka.kuka_xyz_env import KukaXYZEnv
 
 
 class KukaFaucetOpenEnvV3(KukaXYZEnv):
@@ -60,7 +60,12 @@ class KukaFaucetOpenEnvV3(KukaXYZEnv):
 
     @property
     def model_name(self) -> str:
-        return str(Path(__file__).parents[1] / "assets" / "kuka_xyz" / "kuka_faucet_open_v3.xml")
+        return str(
+            Path(__file__).parents[1]
+            / "assets"
+            / "kuka_xyz"
+            / "kuka_faucet_open_v3.xml"
+        )
 
     @SawyerXYZEnv._Decorators.assert_task_is_set
     def evaluate_state(
@@ -89,9 +94,9 @@ class KukaFaucetOpenEnvV3(KukaXYZEnv):
 
     @property
     def _target_site_config(self) -> list[tuple[str, npt.NDArray[Any]]]:
-        assert (
-            self._target_pos is not None
-        ), "`reset_model()` must be called before `_target_site_config`."
+        assert self._target_pos is not None, (
+            "`reset_model()` must be called before `_target_site_config`."
+        )
         return [
             ("goal_open", self._target_pos),
             ("goal_close", np.array([10.0, 10.0, 10.0])),
@@ -130,9 +135,9 @@ class KukaFaucetOpenEnvV3(KukaXYZEnv):
     def compute_reward(
         self, action: npt.NDArray[Any], obs: npt.NDArray[np.float64]
     ) -> tuple[float, float, float, float, float, float]:
-        assert (
-            self._target_pos is not None
-        ), "`reset_model()` must be called before `compute_reward()`."
+        assert self._target_pos is not None, (
+            "`reset_model()` must be called before `compute_reward()`."
+        )
         if self.reward_function_version == "v2":
             del action
             obj = obs[4:7] + np.array([-0.04, 0.0, 0.03])
@@ -183,9 +188,10 @@ class KukaFaucetOpenEnvV3(KukaXYZEnv):
 
             objPos = obs[4:7]
 
-            rightFinger, leftFinger = self._get_site_pos(
-                "rightEndEffector"
-            ), self._get_site_pos("leftEndEffector")
+            rightFinger, leftFinger = (
+                self._get_site_pos("rightEndEffector"),
+                self._get_site_pos("leftEndEffector"),
+            )
             fingerCOM = (rightFinger + leftFinger) / 2
 
             pullGoal = self._target_pos

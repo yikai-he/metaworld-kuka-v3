@@ -7,10 +7,10 @@ import mujoco
 import numpy as np
 import numpy.typing as npt
 from gymnasium.spaces import Box
-
 from metaworld.sawyer_xyz_env import RenderMode, SawyerXYZEnv
 from metaworld.types import InitConfigDict
 from metaworld.utils import reward_utils
+
 from metaworld_kuka.kuka_xyz_env import KukaXYZEnv
 
 
@@ -170,8 +170,7 @@ class KukaFaucetCloseEnvV3(KukaXYZEnv):
         pull_reward = 0.0
         if self.reachCompleted:
             pull_reward = 1000 * (self.maxPullDist - pull_dist) + 1000 * (
-                np.exp(-(pull_dist**2) / 0.01)
-                + np.exp(-(pull_dist**2) / 0.001)
+                np.exp(-(pull_dist**2) / 0.01) + np.exp(-(pull_dist**2) / 0.001)
             )
             pull_reward = max(pull_reward, 0.0)
         return reach_reward + pull_reward, 0.0, 0.0, pull_dist, 0.0, 0.0

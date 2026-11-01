@@ -8,13 +8,12 @@ from typing import Any
 import numpy as np
 import numpy.typing as npt
 from gymnasium.spaces import Box
-from scipy.spatial.transform import Rotation
-
 from metaworld.sawyer_xyz_env import RenderMode, SawyerXYZEnv
 from metaworld.types import InitConfigDict
 from metaworld.utils import reward_utils
-from metaworld_kuka.kuka_xyz_env import KukaXYZEnv
+from scipy.spatial.transform import Rotation
 
+from metaworld_kuka.kuka_xyz_env import KukaXYZEnv
 
 _MODEL = Path(__file__).parents[1] / "assets" / "kuka_xyz" / "kuka_push_v3.xml"
 
@@ -23,6 +22,9 @@ class KukaPushEnvV3(KukaXYZEnv):
     """Push a puck to a sampled planar goal with the KUKA end effector."""
 
     TARGET_RADIUS: float = 0.05
+    OBJECT_RADIUS: float = 0.03
+    PAD_SUCCESS_THRESHOLD: float = 0.055
+    NEAR_OBJECT_RADIUS: float = 0.055
 
     def __init__(
         self,
@@ -33,6 +35,8 @@ class KukaPushEnvV3(KukaXYZEnv):
         height: int = 480,
         width: int = 480,
     ) -> None:
+        if reward_function_version != "v2":
+            raise ValueError("KUKA Push supports reward_function_version='v2' only")
         # Geometry from fcc9e34; task semantics follow SawyerPushEnvV3.
         # ROBOTIQ_GEOMETRY_CALIBRATION: 0.05 m left the lowest 2F-85 pad
         # above the puck. 0.04 m permits side contact without table contact.
@@ -57,9 +61,6 @@ class KukaPushEnvV3(KukaXYZEnv):
             width=width,
         )
         self.reward_function_version = reward_function_version
-        self._reward_v3_success_latched = False
-        self._reward_v3_1_success_latched = False
-        self._last_reward_components: dict[str, float | bool] = {}
         self.init_config: InitConfigDict = {
             "obj_init_angle": 0.3,
             "obj_init_pos": np.array([0.0, 0.45, 0.02]),
@@ -102,12 +103,22 @@ class KukaPushEnvV3(KukaXYZEnv):
             "obj_to_target": target_to_obj,
             "unscaled_reward": reward,
         }
-        if self.reward_function_version in ("v3", "v3_1"):
+        if self.reward_function_version in (
+            "v3", "v3_1", "v3_2_retention", "v3_3_contact_push_progress",
+            "v4_simple_approach_progress",
+            "v5_contact_start_progress",
+            "v6_rear_contact_push_progress",
+            "v1_initial_to_contact",
+            "v1_1_initial_to_contact_aperture",
+            "sawyer_push_v2_adapted",
+        ):
             info.update(self._last_reward_components)
         return reward, info
 
     def _get_quat_objects(self) -> npt.NDArray[Any]:
-        return Rotation.from_matrix(self.data.geom("objGeom").xmat.reshape(3, 3)).as_quat()
+        return Rotation.from_matrix(
+            self.data.geom("objGeom").xmat.reshape(3, 3)
+        ).as_quat()
 
     def _get_pos_objects(self) -> npt.NDArray[Any]:
         return self.get_body_com("obj")
@@ -115,12 +126,11 @@ class KukaPushEnvV3(KukaXYZEnv):
     def fix_extreme_obj_pos(self, orig_init_pos: npt.NDArray[Any]) -> npt.NDArray[Any]:
         diff = self.get_body_com("obj")[:2] - self.get_body_com("obj")[:2]
         adjusted_pos = orig_init_pos[:2] + diff
-        return np.array([adjusted_pos[0], adjusted_pos[1], self.get_body_com("obj")[-1]])
+        return np.array(
+            [adjusted_pos[0], adjusted_pos[1], self.get_body_com("obj")[-1]]
+        )
 
     def reset_model(self) -> npt.NDArray[np.float64]:
-        self._reward_v3_success_latched = False
-        self._reward_v3_1_success_latched = False
-        self._last_reward_components = {}
         self._reset_hand()
         self._target_pos = self.goal.copy()
         self.obj_init_pos = self.fix_extreme_obj_pos(self.init_config["obj_init_pos"])
@@ -140,7 +150,9 @@ class KukaPushEnvV3(KukaXYZEnv):
         self.maxPushDist = np.linalg.norm(self.obj_init_pos[:2] - self._target_pos[:2])
         self.maxPlacingDist = (
             np.linalg.norm(
-                np.array([self.obj_init_pos[0], self.obj_init_pos[1], self.heightTarget])
+                np.array(
+                    [self.obj_init_pos[0], self.obj_init_pos[1], self.heightTarget]
+                )
                 - self._target_pos
             )
             + self.heightTarget
@@ -151,11 +163,8 @@ class KukaPushEnvV3(KukaXYZEnv):
         self, action: npt.NDArray[Any], obs: npt.NDArray[np.float64]
     ) -> tuple[float, float, float, float, float, float]:
         assert self._target_pos is not None and self.obj_init_pos is not None
-        if self.reward_function_version not in ("v2", "v3", "v3_1"):
-            raise ValueError(
-                "KUKA push supports reward_function_version='v2', 'v3', or "
-                "'v3_1' only"
-            )
+        if self.reward_function_version != "v2":
+            raise ValueError("KUKA Push supports reward_function_version='v2' only")
         obj = obs[4:7]
         tcp_opened = obs[3]
         tcp_to_obj = float(np.linalg.norm(obj - self.tcp_center))
@@ -167,81 +176,56 @@ class KukaPushEnvV3(KukaXYZEnv):
             margin=target_to_obj_init,
             sigmoid="long_tail",
         )
-        object_grasped = self._gripper_caging_reward(
+        object_grasped = self._robotiq_caging_reward(
             action,
             obj,
             object_reach_radius=0.01,
-            obj_radius=0.015,
-            pad_success_thresh=0.05,
+            obj_radius=self.OBJECT_RADIUS,
+            pad_success_thresh=self.PAD_SUCCESS_THRESHOLD,
             xz_thresh=0.005,
             high_density=True,
         )
-        contact = bool(
-            self.pad_contacting_object(self._get_id_main_object()) and tcp_opened > 0
-        )
-        if self.reward_function_version in ("v3", "v3_1"):
-            previous_obj = obs[22:25]
-            goal = obs[36:39]
-            previous_target_to_obj = float(np.linalg.norm(previous_obj - goal))
-            signed_progress = previous_target_to_obj - target_to_obj
-            clipped_progress = float(np.clip(signed_progress, -0.005, 0.005))
-            is_v3_1 = self.reward_function_version == "v3_1"
-            success_before_step = (
-                self._reward_v3_1_success_latched
-                if is_v3_1
-                else self._reward_v3_success_latched
-            )
-            success_now = target_to_obj <= self.TARGET_RADIUS
-            first_success = success_now and not success_before_step
-
-            if success_before_step:
-                reward = 0.0
-            elif first_success:
-                reward = 100.0
-                if is_v3_1:
-                    self._reward_v3_1_success_latched = True
-                else:
-                    self._reward_v3_success_latched = True
-            elif is_v3_1 and contact:
-                reward = 0.05 + 1000.0 * clipped_progress
-            elif is_v3_1:
-                reward = object_grasped
-            else:
-                reward = (
-                    0.1 * object_grasped
-                    + 0.05 * float(contact)
-                    + 1000.0 * float(contact) * clipped_progress
-                )
-            prefix = "reward_v3_1" if is_v3_1 else "reward_v3"
-            self._last_reward_components = {
-                f"{prefix}_caging": float(object_grasped),
-                f"{prefix}_contact": contact,
-                f"{prefix}_signed_progress": signed_progress,
-                f"{prefix}_clipped_progress": clipped_progress,
-                f"{prefix}_success_latched": (
-                    self._reward_v3_1_success_latched
-                    if is_v3_1
-                    else self._reward_v3_success_latched
-                ),
-                f"{prefix}_first_success": first_success,
-                f"{prefix}_total": float(reward),
-            }
-            return (
-                float(reward),
-                tcp_to_obj,
-                tcp_opened,
-                target_to_obj,
-                object_grasped,
-                in_place,
-            )
-
         reward = 2 * object_grasped
-        # The Robotiq TCP is the fingertip midpoint. Runtime calibration shows
-        # useful pad contact at tcp_to_obj=0.040--0.054 m, so the historical
-        # synthetic-gripper 0.02 m gate can never activate. Gate the existing
-        # shaping bonus on the physical event it was intended to represent.
-        if contact:
+        if tcp_to_obj < self.NEAR_OBJECT_RADIUS and tcp_opened > 0:
             reward += 1.0 + reward + 5.0 * in_place
         if target_to_obj < self.TARGET_RADIUS:
             reward = 10.0
         return reward, tcp_to_obj, tcp_opened, target_to_obj, object_grasped, in_place
+
+    def _robotiq_caging_reward(
+        self, action, obj_pos, obj_radius, pad_success_thresh,
+        object_reach_radius, xz_thresh, *, high_density=False
+    ) -> float:
+        """Sawyer caging reward mapped to the 2F-85 opening geometry.
+
+        The fixed KUKA wrist places the Robotiq opening axis on world Y, as in
+        Sawyer's task. All tolerance and Hamacher-product semantics are kept.
+        """
+        del object_reach_radius
+        left_pad = self.get_body_com("leftpad")
+        right_pad = self.get_body_com("rightpad")
+        pad_y = np.array([left_pad[1], right_pad[1]])
+        pad_to_obj = np.abs(pad_y - obj_pos[1])
+        pad_to_initial = np.abs(pad_y - self.obj_init_pos[1])
+        margins = np.abs(pad_to_initial - pad_success_thresh)
+        cage_sides = [
+            reward_utils.tolerance(
+                pad_to_obj[index], bounds=(obj_radius, pad_success_thresh),
+                margin=margins[index], sigmoid="long_tail"
+            )
+            for index in range(2)
+        ]
+        cage_y = reward_utils.hamacher_product(*cage_sides)
+        xz = [0, 2]
+        center_margin = np.linalg.norm(self.obj_init_pos[xz] - self.init_tcp[xz])
+        center_margin -= xz_thresh
+        cage_xz = reward_utils.tolerance(
+            np.linalg.norm(self.tcp_center[xz] - obj_pos[xz]),
+            bounds=(0, xz_thresh), margin=center_margin, sigmoid="long_tail"
+        )
+        caging = reward_utils.hamacher_product(cage_y, float(cage_xz))
+        gripping = min(max(0.0, float(action[-1])), 1.0) if caging > 0.97 else 0.0
+        result = reward_utils.hamacher_product(caging, gripping)
+        if high_density:
+            result = (result + caging) / 2
+        return float(result)

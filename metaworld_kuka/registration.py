@@ -7,21 +7,24 @@ from typing import Any, Literal
 
 import gymnasium as gym
 import numpy as np
-
 from metaworld import _init_each_env, _make_tasks
+
 from metaworld_kuka.envs import (
     KukaButtonPressEnvV3,
-    KukaDrawerCloseEnvV3,
-    KukaFaucetOpenEnvV3,
-    KukaFaucetCloseEnvV3,
-    KukaWindowOpenEnvV3,
-    KukaWindowCloseEnvV3,
+    KukaButtonPressTopdownEnvV3,
     KukaDoorOpenEnvV3,
-    KukaPickPlaceEnvV3,
-    KukaHandlePressSideEnvV3,
+    KukaDrawerCloseEnvV3,
+    KukaFaucetCloseEnvV3,
+    KukaFaucetOpenEnvV3,
     KukaHammerEnvV3,
+    KukaHandlePressSideEnvV3,
+    KukaPegUnplugSideEnvV3,
+    KukaPickPlaceEnvV3,
     KukaPushEnvV3,
+    KukaPushCubeEnvV3,
     KukaReachEnvV3,
+    KukaWindowCloseEnvV3,
+    KukaWindowOpenEnvV3,
 )
 
 KUKA_MT1_ID = "Meta-World-KUKA/MT1"
@@ -29,8 +32,11 @@ KUKA_ENVIRONMENTS = OrderedDict(
     (
         ("kuka-reach-v3", KukaReachEnvV3),
         ("kuka-push-v3", KukaPushEnvV3),
+        ("kuka-push-cube-v3", KukaPushCubeEnvV3),
         ("kuka-handle-press-side-v3", KukaHandlePressSideEnvV3),
         ("kuka-button-press-v3", KukaButtonPressEnvV3),
+        ("kuka-button-press-topdown-v3", KukaButtonPressTopdownEnvV3),
+        ("kuka-peg-unplug-side-v3", KukaPegUnplugSideEnvV3),
         ("kuka-hammer-v3", KukaHammerEnvV3),
         ("kuka-drawer-close-v3", KukaDrawerCloseEnvV3),
         ("kuka-faucet-open-v3", KukaFaucetOpenEnvV3),
@@ -66,9 +72,14 @@ def make_kuka_mt1(
     seed: int | None = None,
     use_one_hot: bool = False,
     terminate_on_success: bool = False,
-    reward_function_version: Literal["v1", "v2", "v3"] = "v2",
+    reward_function_version: Literal["v1", "v2"] = "v2",
     hammer_reward_variant: Literal["original", "nail_progress"] = "original",
     hammer_nail_progress_weight: float = 0.0,
+    peg_unplug_reward_variant: Literal[
+        "original", "peg_unplug_progress_v1"
+    ] = "original",
+    peg_unplug_progress_weight: float = 0.0,
+    peg_unplug_progress_gamma: float = 0.99,
     task_select: Literal["random", "pseudorandom"] = "random",
     render_mode: Literal["human", "rgb_array", "depth_array"] | None = None,
     camera_name: str | None = None,
@@ -85,6 +96,10 @@ def make_kuka_mt1(
         )
     if kwargs:
         raise TypeError(f"Unsupported KUKA MT1 options: {tuple(sorted(kwargs))}")
+    if reward_function_version not in ("v1", "v2"):
+        raise ValueError(
+            f"Unsupported reward_function_version={reward_function_version!r}"
+        )
 
     env_cls = KUKA_ENVIRONMENTS[env_name]
     args_kwargs = {env_name: {"args": [], "kwargs": {"task_id": 0}}}
@@ -98,6 +113,29 @@ def make_kuka_mt1(
         hammer_reward_variant != "original" or hammer_nail_progress_weight != 0.0
     ):
         raise ValueError("Hammer reward options are valid only for kuka-hammer-v3")
+    if env_name != "kuka-peg-unplug-side-v3" and (
+        peg_unplug_reward_variant != "original" or peg_unplug_progress_weight != 0.0
+    ):
+        raise ValueError(
+            "Peg Unplug reward options are valid only for kuka-peg-unplug-side-v3"
+        )
+    if peg_unplug_reward_variant not in ("original", "peg_unplug_progress_v1"):
+        raise ValueError(
+            "peg_unplug_reward_variant must be 'original' or 'peg_unplug_progress_v1'"
+        )
+    if peg_unplug_progress_weight < 0:
+        raise ValueError("peg_unplug_progress_weight must be nonnegative")
+    if not 0 < peg_unplug_progress_gamma <= 1:
+        raise ValueError("peg_unplug_progress_gamma must be in (0, 1]")
+    if peg_unplug_reward_variant == "original" and peg_unplug_progress_weight != 0:
+        raise ValueError(
+            "original Peg Unplug reward requires peg_unplug_progress_weight=0"
+        )
+    if (
+        peg_unplug_reward_variant == "peg_unplug_progress_v1"
+        and peg_unplug_progress_weight <= 0
+    ):
+        raise ValueError("peg_unplug_progress_v1 requires a positive progress weight")
     env = _init_each_env(
         env_cls=env_cls,
         tasks=tasks,
@@ -123,6 +161,11 @@ def make_kuka_mt1(
         raw_env = env.unwrapped
         raw_env.hammer_reward_variant = hammer_reward_variant
         raw_env.hammer_nail_progress_weight = float(hammer_nail_progress_weight)
+    if env_name == "kuka-peg-unplug-side-v3":
+        raw_env = env.unwrapped
+        raw_env.peg_unplug_reward_variant = peg_unplug_reward_variant
+        raw_env.peg_unplug_progress_weight = float(peg_unplug_progress_weight)
+        raw_env.peg_unplug_progress_gamma = float(peg_unplug_progress_gamma)
     return Float32ObservationWrapper(env)
 
 

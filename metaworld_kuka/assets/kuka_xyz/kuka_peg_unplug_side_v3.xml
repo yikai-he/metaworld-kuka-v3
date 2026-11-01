@@ -1,0 +1,53 @@
+<mujoco model="kuka_peg_unplug_side_v3">
+    <include file="../objects/assets/kuka_xyz_base_dependencies.xml"/>
+    <asset>
+        <texture name="T_plug_plast" type="cube" file="../../../metaworld/assets/textures/plaster1.png"/>
+        <material name="plug_col" rgba="0.3 0.3 1.0 0.5" shininess="0" specular="0"/>
+        <material name="plug_green" rgba="0 .5 0 1" shininess="1" reflectance=".7" specular=".5"/>
+        <material name="plug_black" rgba=".25 .25 .25 1" shininess="1" reflectance=".7" specular=".5"/>
+        <material name="plug_white" rgba=".6 .6 .6 1" shininess="1" reflectance=".7" specular=".5"/>
+        <material name="plug_gold" rgba=".65 .51 .24 1" shininess="1" reflectance=".7" specular=".5"/>
+        <material name="plug_plast" texture="T_plug_plast" shininess="1" reflectance=".7" specular=".5"/>
+        <mesh file="../../../metaworld/assets/objects/meshes/plug/plug_head.stl" name="plug_head"/>
+        <mesh file="../../../metaworld/assets/objects/meshes/plug/plug.stl" name="plug"/>
+        <mesh file="../../../metaworld/assets/objects/meshes/plug/plug_wall.stl" name="plug_wall"/>
+        <mesh file="../../../metaworld/assets/objects/meshes/plug/plug_plastic.stl" name="plug_plastic"/>
+    </asset>
+    <default>
+        <default class="plug_base">
+            <joint armature="0.001" damping="2" limited="true"/>
+            <geom conaffinity="0" contype="0" group="1" type="mesh"/>
+            <position ctrllimited="true" ctrlrange="0 1.57"/>
+            <default class="plug_viz"><geom condim="4" type="mesh"/></default>
+            <default class="plug_col"><geom conaffinity="1" condim="3" contype="1" group="4" material="plug_col" solimp="0.99 0.99 0.01" solref="0.01 1"/></default>
+        </default>
+    </default>
+    <option timestep="0.0025" iterations="50" tolerance="1e-10" solver="Newton" jacobian="dense" cone="elliptic"/>
+    <visual><global offwidth="480" offheight="480"/><headlight ambient="0.4 0.4 0.4"/></visual>
+    <worldbody>
+        <light directional="true" diffuse="0.6 0.6 0.6" pos="-1 -1 1" dir="1 1 -1"/>
+        <camera name="corner" pos="1.1 -0.7 1.1" xyaxes="0.55 0.83 0 -0.45 0.30 0.84"/>
+        <geom name="floor" type="plane" size="2 2 0.1" rgba="0.8 0.8 0.8 1"/>
+        <include file="../objects/assets/kuka_xyz_base.xml"/>
+        <body name="plug1" pos="-0.146 0.6 0.131">
+            <joint name="objjoint" type="free"/>
+            <body childclass="plug_base" name="plug">
+                <geom material="plug_gold" mesh="plug" pos="-0.04 0.015 0.0"/>
+                <geom material="plug_black" euler="0 1.57 0" pos="-0.013 0 0" size="0.045 0.007" type="cylinder"/>
+                <geom material="plug_black" pos="0.06 0 0" size="0.035" type="sphere"/>
+                <geom material="plug_black" euler="0 1.57 0" pos="0.025 0 0" size="0.035 0.032" type="cylinder"/>
+                <geom class="plug_col" pos="-0.035 0 0" size="0.03" type="sphere" mass=".05" friction="0.1"/>
+                <geom class="plug_col" euler="0 1.57 0" pos="-0.013 0 0" size="0.045 0.007" type="cylinder" mass=".01" friction="0.1"/>
+                <geom class="plug_col" pos="0.06 0 0" size="0.035" type="sphere" mass=".01" friction="3 0.02 0.002" priority="2"/>
+                <geom class="plug_col" euler="0 1.57 0" pos="0.025 0 0" size="0.035 0.032 0.032" type="box" mass=".01" friction="3 0.02 0.002" priority="2"/>
+                <site name="pegHead" pos="-0.04 0 0" size="0.005" rgba="0.8 0 0 1"/>
+                <site name="pegEnd" pos="0.04 0 0" size="0.005" rgba="0.8 0 0 1"/>
+            </body>
+        </body>
+        <body name="box" pos="-0.19 0.6 0">
+            <include file="../../../metaworld/assets/objects/assets/plug_wall.xml"/>
+        </body>
+        <site name="goal" pos="0.004 0.6 0.131" size="0.01" rgba="0.8 0 0 1"/>
+    </worldbody>
+    <equality><weld name="mocap_to_hand" body1="mocap" body2="hand" solref="0.02 1"/></equality>
+</mujoco>

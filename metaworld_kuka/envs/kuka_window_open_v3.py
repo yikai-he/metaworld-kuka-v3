@@ -1,16 +1,16 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 import numpy as np
 import numpy.typing as npt
 from gymnasium.spaces import Box
-
-from pathlib import Path
 from metaworld.sawyer_xyz_env import RenderMode, SawyerXYZEnv
-from metaworld_kuka.kuka_xyz_env import KukaXYZEnv
 from metaworld.types import InitConfigDict
 from metaworld.utils import reward_utils
+
+from metaworld_kuka.kuka_xyz_env import KukaXYZEnv
 
 
 class KukaWindowOpenEnvV3(KukaXYZEnv):
@@ -76,7 +76,12 @@ class KukaWindowOpenEnvV3(KukaXYZEnv):
 
     @property
     def model_name(self) -> str:
-        return str(Path(__file__).parents[1] / "assets" / "kuka_xyz" / "kuka_window_open_v3.xml")
+        return str(
+            Path(__file__).parents[1]
+            / "assets"
+            / "kuka_xyz"
+            / "kuka_window_open_v3.xml"
+        )
 
     @SawyerXYZEnv._Decorators.assert_task_is_set
     def evaluate_state(
@@ -175,9 +180,10 @@ class KukaWindowOpenEnvV3(KukaXYZEnv):
             del actions
             objPos = obs[4:7]
 
-            rightFinger, leftFinger = self._get_site_pos(
-                "rightEndEffector"
-            ), self._get_site_pos("leftEndEffector")
+            rightFinger, leftFinger = (
+                self._get_site_pos("rightEndEffector"),
+                self._get_site_pos("leftEndEffector"),
+            )
             fingerCOM = (rightFinger + leftFinger) / 2
 
             pullGoal = self._target_pos

@@ -8,13 +8,12 @@ from typing import Any
 import numpy as np
 import numpy.typing as npt
 from gymnasium.spaces import Box
-from scipy.spatial.transform import Rotation
-
 from metaworld.sawyer_xyz_env import RenderMode, SawyerXYZEnv
 from metaworld.types import InitConfigDict
 from metaworld.utils import reward_utils
-from metaworld_kuka.kuka_xyz_env import KukaXYZEnv
+from scipy.spatial.transform import Rotation
 
+from metaworld_kuka.kuka_xyz_env import KukaXYZEnv
 
 _MODEL = Path(__file__).parents[1] / "assets" / "kuka_xyz" / "kuka_reach_v3.xml"
 
@@ -98,7 +97,9 @@ class KukaReachEnvV3(KukaXYZEnv):
     def fix_extreme_obj_pos(self, orig_init_pos: npt.NDArray[Any]) -> npt.NDArray[Any]:
         diff = self.get_body_com("obj")[:2] - self.get_body_com("obj")[:2]
         adjusted_pos = orig_init_pos[:2] + diff
-        return np.array([adjusted_pos[0], adjusted_pos[1], self.get_body_com("obj")[-1]])
+        return np.array(
+            [adjusted_pos[0], adjusted_pos[1], self.get_body_com("obj")[-1]]
+        )
 
     def reset_model(self) -> npt.NDArray[np.float64]:
         self._reset_hand()
@@ -125,7 +126,9 @@ class KukaReachEnvV3(KukaXYZEnv):
         if self.reward_function_version == "v2":
             target_radius = 0.05
             tcp_to_target = float(np.linalg.norm(self.tcp_center - self._target_pos))
-            in_place_margin = float(np.linalg.norm(self.hand_init_pos - self._target_pos))
+            in_place_margin = float(
+                np.linalg.norm(self.hand_init_pos - self._target_pos)
+            )
             in_place = reward_utils.tolerance(
                 tcp_to_target,
                 bounds=(0, target_radius),

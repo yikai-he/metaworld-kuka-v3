@@ -169,9 +169,7 @@ class KukaHammerEnvV3(KukaXYZEnv):
     def _is_success(nail_qpos: float) -> bool:
         return bool(nail_qpos > 0.09)
 
-    def _shape_nail_progress_reward(
-        self, raw_reward: float, nail_qpos: float
-    ) -> float:
+    def _shape_nail_progress_reward(self, raw_reward: float, nail_qpos: float) -> float:
         if self.hammer_reward_variant == "original":
             return raw_reward
         return raw_reward + self.hammer_nail_progress_weight * self._nail_progress(

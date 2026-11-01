@@ -39,19 +39,63 @@ for _ in range(3):
 env.close()
 ```
 
-The entry point currently supports `kuka-reach-v3`, `kuka-push-v3`,
-`kuka-handle-press-side-v3`, `kuka-button-press-v3`, `kuka-hammer-v3`,
-`kuka-drawer-close-v3`, `kuka-faucet-open-v3`, `kuka-faucet-close-v3`,
-`kuka-window-open-v3`, `kuka-window-close-v3`, `kuka-door-open-v3`, and
-`kuka-pick-place-v3`.
+The entry point currently supports these 15 tasks:
+
+- `kuka-reach-v3`
+- `kuka-push-v3`
+- `kuka-push-cube-v3`
+- `kuka-handle-press-side-v3`
+- `kuka-button-press-v3`
+- `kuka-button-press-topdown-v3`
+- `kuka-peg-unplug-side-v3`
+- `kuka-hammer-v3`
+- `kuka-drawer-close-v3`
+- `kuka-faucet-open-v3`
+- `kuka-faucet-close-v3`
+- `kuka-window-open-v3`
+- `kuka-window-close-v3`
+- `kuka-door-open-v3`
+- `kuka-pick-place-v3`
 
 On 2026-10-09, all twelve tasks were validated locally with Python 3.10.20,
 Gymnasium 1.3.0, MuJoCo 3.3.0, and NumPy 2.2.6: each model loaded, the
 environment initialized and reset, and three actions produced finite
 observations. This is a smoke test, not evidence of task solvability or trained
-policy performance.
+policy performance. The three subsequently added tasks are covered by the same
+headless registration, model-loading, space-contract, and finite-step tests.
 
-For headless testing, use a rendering backend supported by the host:
+## Public contracts and reward selection
+
+All registered KUKA tasks use a 39-element `float32` observation and a
+four-element continuous action. The action contains Cartesian end-effector
+motion followed by gripper control. The episode horizon is 200 steps. Task and
+goal sampling are controlled by MetaWorld's task payload and seed; callers that
+need exact experiment reproduction should retain both.
+
+Select rewards with the `reward_function_version` argument to
+`Meta-World-KUKA/MT1`. Ordinary `kuka-push-v3` uses only its Sawyer-inspired
+`v2` reward. `kuka-push-cube-v3` is likewise a single Sawyer-inspired v2 task;
+its former curricula, contact starts, and experimental rewards have been
+removed. Historical checkpoints remain research records but are incompatible
+with the new task definition. Registration rejects obsolete reward versions.
+
+```python
+env = gym.make(
+    "Meta-World-KUKA/MT1",
+    env_name="kuka-push-cube-v3",
+    reward_function_version="v2",
+    seed=42,
+)
+```
+
+The Hammer and Peg Unplug experiments also expose separately scoped reward
+variant parameters through the same registered factory. See the implementation
+and tests before changing them; these options are part of existing experiment
+contracts.
+
+For headless testing, use a rendering backend supported by the host. In this
+checkout the validated interpreter is normally selected explicitly by the
+developer; the generic command is:
 
 ```bash
 MUJOCO_GL=egl PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -m pytest tests/metaworld_kuka
@@ -84,6 +128,20 @@ The plugin setting avoids unrelated globally installed pytest plugins.
 
 Additional local engineering notes are in `docs/`, and diagnostic utilities
 are in `scripts/`.
+
+## Relationship to continual-learning
+
+This repository owns environment registration, task implementations, reward
+semantics, MuJoCo models, and assets. The sibling `continual-learning`
+repository consumes the public `Meta-World-KUKA/MT1` entry point through its
+`kuka-v3` adapter and owns training configurations, checkpoints, evaluation,
+and policy viewers. Keep both repositories at mutually compatible revisions
+when reproducing an experiment. Environment cleanup must not rename public
+modules, task IDs, reward versions, XML entry points, or observation/action
+contracts without a coordinated migration in that consumer.
+
+Repository audit details and deferred cleanup candidates are recorded in
+[`docs/REPOSITORY_CLEANUP_REPORT.md`](docs/REPOSITORY_CLEANUP_REPORT.md).
 
 ## Original MetaWorld README
 

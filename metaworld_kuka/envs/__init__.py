@@ -11,9 +11,15 @@ from metaworld_kuka.envs.kuka_pick_place_v3 import KukaPickPlaceEnvV3
 from metaworld_kuka.envs.kuka_hammer_v3 import KukaHammerEnvV3
 from metaworld_kuka.envs.kuka_reach_v3 import KukaReachEnvV3
 from metaworld_kuka.envs.kuka_push_v3 import KukaPushEnvV3
+from metaworld_kuka.envs.kuka_push_cube_v3 import KukaPushCubeEnvV3
+from metaworld_kuka.envs.kuka_button_press_v3 import KukaButtonPressEnvV3
+from metaworld_kuka.envs.kuka_button_press_topdown_v3 import KukaButtonPressTopdownEnvV3
+from metaworld_kuka.envs.kuka_peg_unplug_side_v3 import KukaPegUnplugSideEnvV3
 
 __all__ = [
     "KukaButtonPressEnvV3",
+    "KukaButtonPressTopdownEnvV3",
+    "KukaPegUnplugSideEnvV3",
     "KukaDrawerCloseEnvV3",
     "KukaFaucetOpenEnvV3",
     "KukaFaucetCloseEnvV3",
@@ -24,6 +30,6 @@ __all__ = [
     "KukaHandlePressSideEnvV3",
     "KukaHammerEnvV3",
     "KukaPushEnvV3",
+    "KukaPushCubeEnvV3",
     "KukaReachEnvV3",
 ]
-from metaworld_kuka.envs.kuka_button_press_v3 import KukaButtonPressEnvV3

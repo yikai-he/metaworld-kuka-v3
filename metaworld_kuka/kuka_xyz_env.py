@@ -115,6 +115,50 @@ class KukaXYZEnv(SawyerXYZEnv):
             for contact in self.data.contact
         )
 
+    def robot_object_contact_diagnostics(
+        self, object_geom_id: int
+    ) -> tuple[bool, bool, bool]:
+        """Classify post-step contacts between an object and the Robotiq gripper.
+
+        The physical predicate includes every collidable geom attached to the
+        Robotiq ``base`` body or one of its descendants, rather than only the four
+        specially named pads. World/table contacts are therefore excluded.
+        """
+        gripper_root_id = self.model.body("base").id
+        gripper_body_ids = {gripper_root_id}
+        for body_id in range(self.model.nbody):
+            parent = body_id
+            while parent > 0:
+                parent = int(self.model.body_parentid[parent])
+                if parent == gripper_root_id:
+                    gripper_body_ids.add(body_id)
+                    break
+        gripper_geom_ids = {
+            geom_id
+            for geom_id in range(self.model.ngeom)
+            if int(self.model.geom_bodyid[geom_id]) in gripper_body_ids
+            and int(self.model.geom_contype[geom_id]) != 0
+        }
+        pad_ids = {self.model.geom(name).id for name in self.ROBOTIQ_PAD_GEOMS}
+        follower_body_ids = {
+            self.model.body("left_follower").id,
+            self.model.body("right_follower").id,
+        }
+        follower_geom_ids = {
+            geom_id
+            for geom_id in gripper_geom_ids
+            if int(self.model.geom_bodyid[geom_id]) in follower_body_ids
+        }
+        physical = named_pad = follower = False
+        for contact in self.data.contact:
+            if object_geom_id not in (contact.geom1, contact.geom2):
+                continue
+            other = contact.geom2 if contact.geom1 == object_geom_id else contact.geom1
+            physical |= other in gripper_geom_ids
+            named_pad |= other in pad_ids
+            follower |= other in follower_geom_ids
+        return bool(physical), bool(named_pad), bool(follower)
+
     def set_xyz_action(self, action: npt.NDArray[Any]) -> None:
         """Apply a clipped Cartesian delta while preserving KUKA orientation."""
         action = np.clip(action, -1.0, 1.0)

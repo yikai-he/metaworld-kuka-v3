@@ -9,18 +9,14 @@ import mujoco
 import numpy as np
 import numpy.typing as npt
 from gymnasium.spaces import Box
-
 from metaworld.sawyer_xyz_env import RenderMode, SawyerXYZEnv
 from metaworld.types import InitConfigDict
 from metaworld.utils import reward_utils
+
 from metaworld_kuka.kuka_xyz_env import KukaXYZEnv
 
-
 _MODEL = (
-    Path(__file__).parents[1]
-    / "assets"
-    / "kuka_xyz"
-    / "kuka_handle_press_side_v3.xml"
+    Path(__file__).parents[1] / "assets" / "kuka_xyz" / "kuka_handle_press_side_v3.xml"
 )
 
 
@@ -64,9 +60,7 @@ class KukaHandlePressSideEnvV3(KukaXYZEnv):
         self._random_reset_space = Box(
             np.array(obj_low), np.array(obj_high), dtype=np.float64
         )
-        self.goal_space = Box(
-            np.array(hand_low), np.array(hand_high), dtype=np.float64
-        )
+        self.goal_space = Box(np.array(hand_low), np.array(hand_high), dtype=np.float64)
 
     @property
     def model_name(self) -> str:
@@ -76,8 +70,8 @@ class KukaHandlePressSideEnvV3(KukaXYZEnv):
     def evaluate_state(
         self, obs: npt.NDArray[np.float64], action: npt.NDArray[np.float32]
     ) -> tuple[float, dict[str, Any]]:
-        reward, tcp_to_obj, _, target_to_obj, grasped, in_place = (
-            self.compute_reward(action, obs)
+        reward, tcp_to_obj, _, target_to_obj, grasped, in_place = self.compute_reward(
+            action, obs
         )
         return reward, {
             "success": float(target_to_obj <= self.TARGET_RADIUS),

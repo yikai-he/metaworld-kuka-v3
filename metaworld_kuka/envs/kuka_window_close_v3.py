@@ -7,10 +7,10 @@ import mujoco
 import numpy as np
 import numpy.typing as npt
 from gymnasium.spaces import Box
-
 from metaworld.sawyer_xyz_env import RenderMode, SawyerXYZEnv
 from metaworld.types import InitConfigDict
 from metaworld.utils import reward_utils
+
 from metaworld_kuka.kuka_xyz_env import KukaXYZEnv
 
 
@@ -55,9 +55,7 @@ class KukaWindowCloseEnvV3(KukaXYZEnv):
         self._random_reset_space = Box(
             np.array(obj_low), np.array(obj_high), dtype=np.float64
         )
-        self.goal_space = Box(
-            np.array(obj_low), np.array(obj_high), dtype=np.float64
-        )
+        self.goal_space = Box(np.array(obj_low), np.array(obj_high), dtype=np.float64)
         self.maxPullDist = 0.2
         self.target_reward = 1000 * self.maxPullDist + 1000 * 2
 
@@ -162,7 +160,6 @@ class KukaWindowCloseEnvV3(KukaXYZEnv):
         pull_reward = 0.0
         if self.reachCompleted:
             pull_reward = 1000 * (self.maxPullDist - pull_dist) + 1000 * (
-                np.exp(-(pull_dist**2) / 0.01)
-                + np.exp(-(pull_dist**2) / 0.001)
+                np.exp(-(pull_dist**2) / 0.01) + np.exp(-(pull_dist**2) / 0.001)
             )
         return -reach_dist + pull_reward, 0.0, 0.0, pull_dist, 0.0, 0.0
